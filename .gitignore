@@ -1,0 +1,6 @@
+.DS_store
+.idea
+node_modules
+public/vue.min.js
+public/echarts.min.js
+public/index.css

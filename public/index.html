@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>FUCK ETH</title>
+    <link rel="stylesheet" href="reset.css">
+    <link rel="stylesheet" href="index.css">
+
+</head>
+
+<body>
+    <div id="app">
+        <div class="header">
+            <div class="logo">fuck eth</div>
+            <div class="status">
+                <div title="ETH/USDT">{{status.usd}} <span class="unit">USDT</span> <span class="line">/</span> </div>
+                <div title="Hashrate">{{status.hashrate}} <span class="unit">TH</span> <span class="line">/</span></div>
+                <div title="Difficulty">{{status.difficulty}} <span class="unit">P</span> <span class="line">/</span></div>
+                <div title="Gas Fee">{{status.gas.toFixed(2)}} <span class="unit">Gwei</span></div>
+            </div>
+        </div>
+        <div class="search">
+            <div class="radio">
+                <input type="radio" v-model="mhs" id="mhs" :value="1e6"><label for="mhs">MH/s</label>
+                <input type="radio" v-model="mhs" id="ghs" :value="1e9"><label for="ghs">GH/s</label>
+            </div>
+            <select class="select" v-model="time">
+                <option :value="24">Daily</option>
+                <option :value="24 * 7">Weekly</option>
+                <option :value="24 * 30">Monthly</option>
+            </select>
+
+            <input class="input" type="text" v-model="hashrate">
+            <span class="label">{{mhs > 1e6 ? 'GH/s' : 'MH/s'}}</span>
+            <div class="earnings">
+                {{eth.toFixed(6)}} <span class="unit">ETH</span> 
+                <span class="line">/</span> 
+                {{usdt.toFixed(2)}} <span class="unit">USDT</span>
+                <span class="line">/</span> 
+                {{cny.toFixed(2)}} <span class="unit">CNY</span>
+            </div>
+        </div>
+        <div id="chart"></div>
+    </div>
+<script src="vue.min.js"></script>
+<script src="echarts.min.js"></script>
+<script>
+    (async () => {
+        // ajax
+        function ajax(url) {
+            return new Promise((resolve, reject) => {
+                let request = new XMLHttpRequest()
+                request.open('GET', url)
+                request.send()
+                request.onreadystatechange = function () {
+                    if (request.readyState == 4 && request.status == 200) {
+                        let data = JSON.parse(request.responseText)
+                        resolve(data)
+                    }
+                }
+            })
+        };
+
+        new Vue({
+            el: '#app',
+            data: {
+                status: {
+                    usd: 0,
+                    cny: 0,
+                    ethHour: 0,
+                    hashrate: 0,
+                    difficulty: 0,
+                    gas: 0,
+                },
+                history: {},
+
+                hashrate: 100,
+                time: 24,
+                mhs: 1e6,
+            },
+            computed: {
+                eth() {
+                    let { status, hashrate, time, mhs } = this
+                    return hashrate * status.ethHour * time * mhs
+                },
+                usdt() {
+                    let { status, eth } = this
+                    return eth * status.usd
+                },
+                cny() {
+                    let { status, eth } = this
+                    return eth * status.cny
+                },
+            },
+            methods: {
+                showChart() {
+                    let { history } = this;
+
+                    let option = {
+                        legend: {
+                            top: 20,
+                            left: 10,
+                            orient: 'vertical',
+                            icon: 'roundRect',
+                            data: ['ETH/USDT', 'Difficulty']
+                        },
+                        tooltip: {
+                            trigger: 'axis',
+                            axisPointer: {
+                                type: 'none'
+                            }
+                        },
+                        grid: {
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            containLabel: false
+                        },
+                        xAxis: [
+                            {
+                                boundaryGap: false,
+                                data: history.time.map(i => new Date(i * 1000).toLocaleDateString())
+                            }
+                        ],
+                        yAxis: [
+                            {
+                                show: false,
+                                type: 'value',
+                                name: 'price',
+                                min: 0,
+                                max: 5000,
+                            },
+                            {
+                                show: false,
+                                type: 'value',
+                                name: 'difficulty',
+                                min: 5,
+                                max: 15,
+                            },
+                        ],
+                        series: [
+                            {
+                                name: 'ETH/USDT',
+                                type: 'line',
+                                showSymbol: false,
+                                step: true,
+                                yAxisIndex: 0,
+                                areaStyle: {},
+                                lineStyle: {
+                                    width: 0
+                                },
+                                data: history.price
+                            },
+                            {
+                                name: 'Difficulty',
+                                type: 'line',
+                                showSymbol: false,
+                                step: true,
+                                yAxisIndex: 1,
+                                areaStyle: {},
+                                lineStyle: {
+                                    width: 0
+                                },
+                                data: history.difficulty.map(i => i.toFixed(2))
+                            },
+
+                        ]
+                    };
+
+                    let myChart = echarts.init(document.getElementById('chart'));
+                    myChart.setOption(option);
+                },
+
+                async init() {
+                    // status
+                    let { status, history } = await ajax('/status');
+
+                    this.status = status
+                    this.history = history
+
+                    this.showChart()
+                }
+            },
+
+            mounted() {
+                this.init()
+            }
+        })
+    })()
+</script>
+
+</body>
+
+</html>
