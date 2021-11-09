@@ -3,4 +3,3 @@
 node_modules
 public/vue.min.js
 public/echarts.min.js
-public/index.css
