@@ -76,7 +76,6 @@
                     difficulty: 0,
                     gas: 0,
                 },
-                history: {},
 
                 hashrate: 100,
                 time: 24,
@@ -97,8 +96,23 @@
                 },
             },
             methods: {
-                showChart() {
-                    let { history } = this;
+                async getStatus() {
+                    let res = await fetch('https://api.ethermine.org/poolStats')
+                    let { data } = await res.json()
+                    this.status.cny = data.price.cny
+                    this.status.gas = data.estimates.gasPrice
+                },
+                
+                async getStatus1() {
+                    let data = await ajax('/status');
+                    this.status.usd = data.usd
+                    this.status.ethHour = data.ethHour
+                    this.status.hashrate = data.hashrate
+                    this.status.difficulty = data.difficulty
+                },
+
+                async showChart() {
+                    let history  = await ajax('/history');
 
                     let option = {
                         legend: {
@@ -175,20 +189,12 @@
                     let myChart = echarts.init(document.getElementById('chart'));
                     myChart.setOption(option);
                 },
-
-                async init() {
-                    // status
-                    let { status, history } = await ajax('/status');
-
-                    this.status = status
-                    this.history = history
-
-                    this.showChart()
-                }
             },
 
             mounted() {
-                this.init()
+                this.getStatus()
+                this.getStatus1()
+                this.showChart()
             }
         })
     })()
